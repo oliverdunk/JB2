@@ -121,4 +121,16 @@ public class B2API {
         return requestResult.getString("bucketId");
     }
 
+    /**
+     * Deletes a B2 Bucket using the API, but only if the bucket contains no versions of any files.
+     * @param session Session authenticated with the API, which will be used as Authorization.
+     * @param bucketID String ID identifying the bucket which should be deleted.
+     */
+    public static void deleteBucket(B2Session session, String bucketID){
+        JSONObject parameters = new JSONObject();
+        parameters.put("accountId", session.getAccountID());
+        parameters.put("bucketId", bucketID);
+        call(session.getAPIURL(), "b2_delete_bucket", session.getAuthToken(), parameters);
+    }
+
 }
