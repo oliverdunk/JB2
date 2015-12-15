@@ -7,6 +7,7 @@
     <groupId>me.oliverdunk</groupId>
     <artifactId>J-B2</artifactId>
     <version>1.0-SNAPSHOT</version>
+
     <dependencies>
         <dependency>
             <groupId>org.json</groupId>
@@ -14,6 +15,5 @@
             <version>20131018</version>
         </dependency>
     </dependencies>
-
 
 </project>

@@ -1,5 +1,9 @@
 package me.oliverdunk.jb2.exceptions;
 
+/**
+ * Represents any error which is returned by the B2 API, and is thrown as a RuntimeException in order to give
+ * clients the ability to fail gracefully.
+ */
 public class B2APIException extends RuntimeException {
 
     private String errorMessage, identifier;
