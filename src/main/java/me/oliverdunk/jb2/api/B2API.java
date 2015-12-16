@@ -1,6 +1,9 @@
 package me.oliverdunk.jb2.api;
 
 import me.oliverdunk.jb2.exceptions.B2APIException;
+import me.oliverdunk.jb2.models.B2Bucket;
+import me.oliverdunk.jb2.models.B2Session;
+import me.oliverdunk.jb2.models.BucketType;
 import org.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -112,25 +115,33 @@ public class B2API {
      * @param bucketType The privacy level of the bucket which is being created.
      * @return String which is the ID of the bucket.
      */
-    public static String createBucket(B2Session session, String bucketName, BucketType bucketType){
+    public static B2Bucket createBucket(B2Session session, String bucketName, BucketType bucketType){
         JSONObject parameters = new JSONObject();
         parameters.put("accountId", session.getAccountID());
         parameters.put("bucketName", bucketName);
         parameters.put("bucketType", bucketType.getIdentifier());
-        JSONObject requestResult =  call(session.getAPIURL(), "b2_create_bucket", session.getAuthToken(), parameters);
-        return requestResult.getString("bucketId");
+        JSONObject requestResult = call(session.getAPIURL(), "b2_create_bucket", session.getAuthToken(), parameters);
+        return new B2Bucket(bucketName, requestResult.getString("bucketId"), bucketType);
     }
 
     /**
      * Deletes a B2 Bucket using the API, but only if the bucket contains no versions of any files.
      * @param session Session authenticated with the API, which will be used as Authorization.
-     * @param bucketID String ID identifying the bucket which should be deleted.
+     * @param bucket The B2Bucket instance which should be deleted.
      */
-    public static void deleteBucket(B2Session session, String bucketID){
+    public static void deleteBucket(B2Session session, B2Bucket bucket){
         JSONObject parameters = new JSONObject();
         parameters.put("accountId", session.getAccountID());
-        parameters.put("bucketId", bucketID);
+        parameters.put("bucketId", bucket.getID());
         call(session.getAPIURL(), "b2_delete_bucket", session.getAuthToken(), parameters);
+    }
+
+    public static void updateBucket(B2Session session, B2Bucket bucket){
+        JSONObject parameters = new JSONObject();
+        parameters.put("accountId", session.getAccountID());
+        parameters.put("bucketId", bucket.getID());
+        parameters.put("bucketType", bucket.getType().getIdentifier());
+        call(session.getAPIURL(), "b2_update_bucket", session.getAuthToken(), parameters);
     }
 
 }

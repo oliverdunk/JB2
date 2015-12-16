@@ -1,4 +1,4 @@
-package me.oliverdunk.jb2.api;
+package me.oliverdunk.jb2.models;
 
 /**
  * Represents a session obtained using the b2_authorize_account method.

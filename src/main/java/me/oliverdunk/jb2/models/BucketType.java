@@ -1,4 +1,4 @@
-package me.oliverdunk.jb2.api;
+package me.oliverdunk.jb2.models;
 
 public enum BucketType {
     ALL_PUBLIC("allPublic"),
