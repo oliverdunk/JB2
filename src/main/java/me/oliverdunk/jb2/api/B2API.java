@@ -3,6 +3,7 @@ package me.oliverdunk.jb2.api;
 import me.oliverdunk.jb2.exceptions.B2APIException;
 import me.oliverdunk.jb2.models.B2Bucket;
 import me.oliverdunk.jb2.models.B2Session;
+import me.oliverdunk.jb2.models.B2Upload;
 import me.oliverdunk.jb2.models.BucketType;
 import org.json.JSONObject;
 
@@ -10,6 +11,10 @@ import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 /**
@@ -40,6 +45,46 @@ public class B2API {
             connection.setDoOutput(true);
             DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
             outputStream.writeBytes(body.toString());
+            outputStream.flush();
+            outputStream.close();
+
+            JSONObject requestResult;
+
+            if(connection.getResponseCode() < 400){
+                InputStream inputStream =  connection.getInputStream();
+                requestResult = inputToJSON(inputStream);
+            }else{
+                InputStream errorStream =  connection.getErrorStream();
+                requestResult = inputToJSON(errorStream);
+
+                B2APIException exception = new B2APIException(requestResult.getString("message"));
+                exception.setStatusCode(requestResult.getInt("status"));
+                exception.setIdentifier(requestResult.getString("code"));
+                throw exception;
+            }
+
+            connection.disconnect();
+            return requestResult;
+        }catch(Exception ex){
+            if(ex instanceof B2APIException) throw (B2APIException) ex;
+            return new JSONObject();
+        }
+    }
+
+    private static JSONObject uploadFile(File file, String name, B2Upload upload) throws B2APIException {
+        try {
+            URL url = new URL(upload.getUploadURL());
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("User-Agent", USER_AGENT);
+            connection.setRequestProperty("Authorization", upload.getAuthorizationToken());
+            connection.setRequestProperty("Content-Type", "b2/x-auto");
+            connection.setRequestProperty("X-Bz-File-Name", name);
+            connection.setRequestProperty("X-Bz-Content-Sha1", getFileHash(file));
+
+            connection.setDoOutput(true);
+            DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
+            outputStream.write(Files.readAllBytes(Paths.get(file.getPath())));
             outputStream.flush();
             outputStream.close();
 
@@ -109,7 +154,27 @@ public class B2API {
     }
 
     /**
-     * Creates a new B2 Bucket using the API.
+     * Gets the SHA1 hash of a file.
+     * @param file The file for which the hash should be generated.
+     * @return The SHA1 hash of the specified file.
+     */
+    private static String getFileHash(File file) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA1");
+        FileInputStream fis = new FileInputStream(file);
+        byte[] dataBytes = new byte[1024];
+        int nread = 0;
+
+        while ((nread = fis.read(dataBytes)) != -1) md.update(dataBytes, 0, nread);
+
+        byte[] mdbytes = md.digest();
+        StringBuffer sb = new StringBuffer("");
+        for (int i = 0; i < mdbytes.length; i++) sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+
+        return sb.toString();
+    }
+
+    /**
+     * Creates a new B2Bucket using the API.
      * @param session Session authenticated with the API, which will be used as Authorization.
      * @param bucketName A name for the bucket, which is at least six characters and does not start with "b2-".
      * @param bucketType The privacy level of the bucket which is being created.
@@ -125,7 +190,7 @@ public class B2API {
     }
 
     /**
-     * Deletes a B2 Bucket using the API, but only if the bucket contains no versions of any files.
+     * Deletes a B2Bucket using the API, but only if the bucket contains no versions of any files.
      * @param session Session authenticated with the API, which will be used as Authorization.
      * @param bucket The B2Bucket instance which should be deleted.
      */
@@ -136,12 +201,35 @@ public class B2API {
         call(session.getAPIURL(), "b2_delete_bucket", session.getAuthToken(), parameters);
     }
 
+    /**
+     * Syncs a B2Bucket instance with the API.
+     * @param session Session authenticated with the API, which will be used as Authorization.
+     * @param bucket The B2Bucket instance which should be synced.
+     */
     public static void updateBucket(B2Session session, B2Bucket bucket){
         JSONObject parameters = new JSONObject();
         parameters.put("accountId", session.getAccountID());
         parameters.put("bucketId", bucket.getID());
         parameters.put("bucketType", bucket.getType().getIdentifier());
         call(session.getAPIURL(), "b2_update_bucket", session.getAuthToken(), parameters);
+    }
+
+    /**
+     * Prepares the API for a file upload within a given bucket.
+     * @param session Session authenticated with the API, which will be used as Authorization.
+     * @param bucket The B2Bucket where the upload will take place.
+     * @return A B2Upload instance representing where a file should be uploaded.
+     */
+    public static B2Upload getUploadURL(B2Session session, B2Bucket bucket){
+        JSONObject parameters = new JSONObject();
+        parameters.put("bucketId", bucket.getID());
+        JSONObject result = call(session.getAPIURL(), "b2_get_upload_url", session.getAuthToken(), parameters);
+        return new B2Upload(bucket, result.getString("uploadUrl"), result.getString("authorizationToken"));
+    }
+
+    public static void uploadFile( B2Upload upload, File file, String name){
+        JSONObject result = uploadFile(file, name, upload);
+        //TODO: Return B2File
     }
 
 }
