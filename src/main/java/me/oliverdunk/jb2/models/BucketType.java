@@ -8,7 +8,8 @@ public enum BucketType {
 
     /**
      * Constructs a new BucketType.
-     * @param identifier Internal identifier for the type used by the B2 API.
+     *
+     * @param identifier Internal identifier for the type used by the B2 API
      */
     BucketType(String identifier){
         this.identifier = identifier;
@@ -16,7 +17,8 @@ public enum BucketType {
 
     /**
      * Returns the identifier of the type.
-     * @return Interal identifier for the type used by the B2 API>
+     *
+     * @return Interal identifier for the type used by the B2 API
      */
     public String getIdentifier(){
         return identifier;

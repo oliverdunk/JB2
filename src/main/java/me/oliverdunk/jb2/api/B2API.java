@@ -1,11 +1,9 @@
 package me.oliverdunk.jb2.api;
 
 import me.oliverdunk.jb2.exceptions.B2APIException;
-import me.oliverdunk.jb2.models.B2Bucket;
-import me.oliverdunk.jb2.models.B2Session;
-import me.oliverdunk.jb2.models.B2Upload;
-import me.oliverdunk.jb2.models.BucketType;
+import me.oliverdunk.jb2.models.*;
 import org.json.JSONObject;
+import org.omg.CORBA.portable.UnknownException;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
@@ -14,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 /**
@@ -26,14 +23,6 @@ public class B2API {
     private static final String USER_AGENT = "JB2/1.0";
     private static final String API_URL = "https://api.backblaze.com";
 
-    /**
-     * Sends a request to the B2 API using the specified headers.
-     * @param method A string representing the B2 method which should be called.
-     * @param authorization A string representing the Authorization header.
-     * @param body A HashMap of key-value pairs which should be sent .
-     * @return A parsed JSONObject from the B2 server.
-     * @throws B2APIException Thrown to represent an error returned by the B2 API.
-     */
     private static JSONObject call(String URL, String method, String authorization, JSONObject body) throws B2APIException {
         try {
             URL url = new URL(URL + "/b2api/v1/" + method);
@@ -71,7 +60,7 @@ public class B2API {
         }
     }
 
-    private static JSONObject uploadFile(File file, String name, B2Upload upload) throws B2APIException {
+    private static JSONObject uploadFile(File file, String name, B2UploadRequest upload) throws B2APIException {
         try {
             URL url = new URL(upload.getUploadURL());
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
@@ -111,11 +100,53 @@ public class B2API {
         }
     }
 
+    private static void downloadFile(String URL, String authorization, B2File file, File destination) throws B2APIException {
+        try {
+            URL url = new URL(URL + "/b2api/v1/b2_download_file_by_id");
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("User-Agent", USER_AGENT);
+            connection.setRequestProperty("Authorization", authorization);
+
+            connection.setDoOutput(true);
+            DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
+            outputStream.writeBytes(new JSONObject().put("fileId", file.getID()).toString());
+            outputStream.flush();
+            outputStream.close();
+
+            if(connection.getResponseCode() < 400){
+                InputStream inputStream =  connection.getInputStream();
+                OutputStream fileOutputStream = new FileOutputStream(destination);
+
+                int read = 0;
+                byte[] bytes = new byte[1024];
+
+                while ((read = inputStream.read(bytes)) != -1) {
+                    fileOutputStream.write(bytes, 0, read);
+                }
+                fileOutputStream.close();
+                connection.disconnect();
+            }else{
+                InputStream errorStream =  connection.getErrorStream();
+                JSONObject requestResult = inputToJSON(errorStream);
+
+                B2APIException exception = new B2APIException(requestResult.getString("message"));
+                exception.setStatusCode(requestResult.getInt("status"));
+                exception.setIdentifier(requestResult.getString("code"));
+                throw exception;
+            }
+
+        }catch(Exception ex) {
+            if (ex instanceof B2APIException) throw (B2APIException) ex;
+        }
+    }
+
     /**
      * Reads the data from an InputStream and returns the string parsed into a JSONObject.
-     * @param inputStream InputStream which will be read to retrieve the data.
-     * @return JSONObject representing the data inside the InputStream.
-     * @throws IOException Thrown if an error occurs while reading data from the InputStream.
+     *
+     * @param inputStream InputStream which will be read to retrieve the data
+     * @return JSONObject representing the data inside the InputStream
+     * @throws IOException Thrown if an error occurs while reading data from the InputStream
      */
     private static JSONObject inputToJSON(InputStream inputStream) throws IOException {
         StringBuilder JSON = new StringBuilder();
@@ -127,9 +158,10 @@ public class B2API {
 
     /**
      * Authorizes an account with the B2 API, using the b2_authorize_account method.
-     * @param accountID Your B2 API account ID.
-     * @param applicationKey Your B2 API application key.
-     * @return A B2Session instance representing the session created by this request.
+     *
+     * @param accountID Your B2 API account ID
+     * @param applicationKey Your B2 API application key
+     * @return A B2Session instance representing the session created by this request
      */
     public static B2Session authorizeAccount(String accountID, String applicationKey){
         String encodedAuth = encodeAuthorization(accountID + ":" + applicationKey);
@@ -144,8 +176,9 @@ public class B2API {
     /**
      * Encodes an authentication input into Base64, and formats for the Authorization field.
      * Used for the authorizeAccount, which does not have the usual authorization token.
-     * @param input Account ID and application key in the format accountID:applicationKey.
-     * @return Encoded Base64 String, with the Basic prefix.
+     *
+     * @param input Account ID and application key in the format accountID:applicationKey
+     * @return Encoded Base64 String, with the Basic prefix
      */
     private static String encodeAuthorization(String input){
         byte[] authorizationBytes = input.getBytes(StandardCharsets.UTF_8);
@@ -155,8 +188,9 @@ public class B2API {
 
     /**
      * Gets the SHA1 hash of a file.
-     * @param file The file for which the hash should be generated.
-     * @return The SHA1 hash of the specified file.
+     *
+     * @param file The file for which the hash should be generated
+     * @return The SHA1 hash of the specified file
      */
     private static String getFileHash(File file) throws Exception {
         MessageDigest md = MessageDigest.getInstance("SHA1");
@@ -175,10 +209,11 @@ public class B2API {
 
     /**
      * Creates a new B2Bucket using the API.
-     * @param session Session authenticated with the API, which will be used as Authorization.
-     * @param bucketName A name for the bucket, which is at least six characters and does not start with "b2-".
-     * @param bucketType The privacy level of the bucket which is being created.
-     * @return String which is the ID of the bucket.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param bucketName A name for the bucket, which is at least six characters and does not start with "b2-"
+     * @param bucketType The privacy level of the bucket which is being created
+     * @return String which is the ID of the bucket
      */
     public static B2Bucket createBucket(B2Session session, String bucketName, BucketType bucketType){
         JSONObject parameters = new JSONObject();
@@ -191,8 +226,9 @@ public class B2API {
 
     /**
      * Deletes a B2Bucket using the API, but only if the bucket contains no versions of any files.
-     * @param session Session authenticated with the API, which will be used as Authorization.
-     * @param bucket The B2Bucket instance which should be deleted.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param bucket The B2Bucket instance which should be deleted
      */
     public static void deleteBucket(B2Session session, B2Bucket bucket){
         JSONObject parameters = new JSONObject();
@@ -203,8 +239,9 @@ public class B2API {
 
     /**
      * Syncs a B2Bucket instance with the API.
-     * @param session Session authenticated with the API, which will be used as Authorization.
-     * @param bucket The B2Bucket instance which should be synced.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param bucket The B2Bucket instance which should be synced
      */
     public static void updateBucket(B2Session session, B2Bucket bucket){
         JSONObject parameters = new JSONObject();
@@ -216,20 +253,40 @@ public class B2API {
 
     /**
      * Prepares the API for a file upload within a given bucket.
-     * @param session Session authenticated with the API, which will be used as Authorization.
-     * @param bucket The B2Bucket where the upload will take place.
-     * @return A B2Upload instance representing where a file should be uploaded.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param bucket The B2Bucket where the upload will take place
+     * @return A B2UploadRequest instance representing where a file should be uploaded
      */
-    public static B2Upload getUploadURL(B2Session session, B2Bucket bucket){
+    public static B2UploadRequest getUploadURL(B2Session session, B2Bucket bucket){
         JSONObject parameters = new JSONObject();
         parameters.put("bucketId", bucket.getID());
         JSONObject result = call(session.getAPIURL(), "b2_get_upload_url", session.getAuthToken(), parameters);
-        return new B2Upload(bucket, result.getString("uploadUrl"), result.getString("authorizationToken"));
+        return new B2UploadRequest(bucket, result.getString("uploadUrl"), result.getString("authorizationToken"));
     }
 
-    public static void uploadFile( B2Upload upload, File file, String name){
+    /**
+     * Uploads a file to the API completing the upload request.
+     *
+     * @param upload An upload request created with the getUploadURL method
+     * @param file The file which should be uploaded
+     * @param name The name which should identify the file
+     * @return A B2File instance
+     */
+    public static B2File uploadFile(B2UploadRequest upload, File file, String name){
         JSONObject result = uploadFile(file, name, upload);
-        //TODO: Return B2File
+        return new B2File(name, result.getString("contentType"), result.getString("fileId"));
+    }
+
+    /**
+     * Downloads a file from the API.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param file The file which should be downloaded
+     * @param destination Where the file should be downloaded to
+     */
+    public static void downloadFile(B2Session session, B2File file, File destination){
+        downloadFile(session.getDownloadURL(), session.getAuthToken(), file, destination);
     }
 
 }

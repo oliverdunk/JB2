@@ -9,10 +9,11 @@ public class B2Session {
 
     /**
      * Constructs a B2Session using values which are returned by the B2 API.
-     * @param authorizationToken Represents the authorizationToken returned by B2.
-     * @param accountID Represents the accountID returned by B2.
-     * @param APIURL Represents the api URI which should be used for further API calls.
-     * @param downloadURL Represents the download URL which should be used for retrieving files.
+     *
+     * @param authorizationToken Represents the authorizationToken returned by B2
+     * @param accountID Represents the accountID returned by B2
+     * @param APIURL Represents the api URI which should be used for further API calls
+     * @param downloadURL Represents the download URL which should be used for retrieving files
      */
     public B2Session(String authorizationToken, String accountID, String APIURL, String downloadURL){
         this.authorizationToken = authorizationToken;
@@ -23,7 +24,8 @@ public class B2Session {
 
     /**
      * Returns the authorization token for this session.
-     * @return Authorization used for the HTTP Authorization header in future requests.
+     *
+     * @return Authorization used for the HTTP Authorization header in future requests
      */
     public String getAuthToken(){
         return authorizationToken;
@@ -31,7 +33,8 @@ public class B2Session {
 
     /**
      * Returns the account ID which owns this session.
-     * @return Account ID representing the owner of the session.
+     *
+     * @return Account ID representing the owner of the session
      */
     public String getAccountID(){
         return accountID;
@@ -39,7 +42,8 @@ public class B2Session {
 
     /**
      * Returns the APIURL which should be used for further requests.
-     * @return APIURL which should be used for futher requests.
+     *
+     * @return APIURL which should be used for further requests
      */
     public String getAPIURL(){
         return APIURL;
@@ -47,7 +51,8 @@ public class B2Session {
 
     /**
      * Returns the downloadURL for this session.
-     * @return downloadURL which should be used when retrieving files.
+     *
+     * @return downloadURL which should be used when retrieving files
      */
     public String getDownloadURL(){
         return downloadURL;
