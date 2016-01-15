@@ -24,4 +24,11 @@ public enum BucketType {
         return identifier;
     }
 
+    public static BucketType getByIdentifier(String name){
+        for(BucketType type : BucketType.values()){
+            if(type.getIdentifier().equals(name)) return type;
+        }
+        return null;
+    }
+
 }

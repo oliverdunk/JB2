@@ -3,7 +3,6 @@ package me.oliverdunk.jb2.api;
 import me.oliverdunk.jb2.exceptions.B2APIException;
 import me.oliverdunk.jb2.models.*;
 import org.json.JSONObject;
-import org.omg.CORBA.portable.UnknownException;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
@@ -12,7 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * Class used for accessing the B2 API using an HTTP connection.
@@ -235,6 +236,28 @@ public class B2API {
         parameters.put("accountId", session.getAccountID());
         parameters.put("bucketId", bucket.getID());
         call(session.getAPIURL(), "b2_delete_bucket", session.getAuthToken(), parameters);
+    }
+
+    /**
+     * Lists all buckets using the API, but only if the bucket contains no versions of any files.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     */
+    public static List<B2Bucket> listBuckets(B2Session session){
+        JSONObject parameters = new JSONObject();
+        parameters.put("accountId", session.getAccountID());
+        JSONObject response = call(session.getAPIURL(), "b2_list_buckets", session.getAuthToken(), parameters);
+
+        List<B2Bucket> buckets = new ArrayList<B2Bucket>();
+        for(int i = 0; i < response.getJSONArray("buckets").length(); i++){
+            JSONObject bucket = response.getJSONArray("buckets").getJSONObject(i);
+            buckets.add(new B2Bucket(
+                    bucket.getString("bucketName"),
+                    bucket.getString("bucketId"),
+                    BucketType.getByIdentifier(bucket.getString("bucketType")))
+            );
+        }
+        return buckets;
     }
 
     /**
