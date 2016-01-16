@@ -6,7 +6,7 @@
 
     <groupId>com.oliverdunk</groupId>
     <artifactId>JB2</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-RELEASE</version>
     <build>
         <plugins>
             <plugin>
