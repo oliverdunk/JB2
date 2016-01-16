@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -56,8 +57,7 @@ public class B2API {
 
             connection.disconnect();
             return requestResult;
-        }catch(Exception ex){
-            if(ex instanceof B2APIException) throw (B2APIException) ex;
+        } catch (IOException ex) {
             return new JSONObject();
         }
     }
@@ -96,8 +96,7 @@ public class B2API {
 
             connection.disconnect();
             return requestResult;
-        }catch(Exception ex){
-            if(ex instanceof B2APIException) throw (B2APIException) ex;
+        } catch (IOException | NoSuchAlgorithmException ex) {
             return new JSONObject();
         }
     }
@@ -138,9 +137,7 @@ public class B2API {
                 throw exception;
             }
 
-        }catch(Exception ex) {
-            if (ex instanceof B2APIException) throw (B2APIException) ex;
-        }
+        } catch (IOException ignored) {}
     }
 
     /**
@@ -194,7 +191,7 @@ public class B2API {
      * @param file The file for which the hash should be generated
      * @return The SHA1 hash of the specified file
      */
-    private static String getFileHash(File file) throws Exception {
+    private static String getFileHash(File file) throws NoSuchAlgorithmException, IOException {
         MessageDigest md = MessageDigest.getInstance("SHA1");
         FileInputStream fis = new FileInputStream(file);
         byte[] dataBytes = new byte[1024];
@@ -202,9 +199,9 @@ public class B2API {
 
         while ((nread = fis.read(dataBytes)) != -1) md.update(dataBytes, 0, nread);
 
-        byte[] mdbytes = md.digest();
+        byte[] mdBytes = md.digest();
         StringBuffer sb = new StringBuffer("");
-        for (int i = 0; i < mdbytes.length; i++) sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+        for (int i = 0; i < mdBytes.length; i++) sb.append(Integer.toString((mdBytes[i] & 0xff) + 0x100, 16).substring(1));
 
         return sb.toString();
     }
