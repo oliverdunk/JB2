@@ -2,6 +2,7 @@ package me.oliverdunk.jb2.api;
 
 import me.oliverdunk.jb2.exceptions.B2APIException;
 import me.oliverdunk.jb2.models.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -239,7 +240,7 @@ public class B2API {
     }
 
     /**
-     * Lists all buckets using the API, but only if the bucket contains no versions of any files.
+     * Lists all buckets using the API
      *
      * @param session Session authenticated with the API, which will be used as Authorization
      */
@@ -298,7 +299,7 @@ public class B2API {
      */
     public static B2File uploadFile(B2UploadRequest upload, File file, String name){
         JSONObject result = uploadFile(file, name, upload);
-        return new B2File(name, result.getString("contentType"), result.getString("fileId"));
+        return new B2File(name, result.getString("contentType"), result.getString("fileId"), file.length(), System.currentTimeMillis());
     }
 
     /**
@@ -310,6 +311,46 @@ public class B2API {
      */
     public static void downloadFile(B2Session session, B2File file, File destination){
         downloadFile(session.getDownloadURL(), session.getAuthToken(), file, destination);
+    }
+
+    /**
+     * Lists all files using the API, sending one separate request per 1000 files
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param bucket Bucket which should be searched
+     */
+    public static List<B2File> listFiles(B2Session session, B2Bucket bucket){
+        JSONObject parameters = new JSONObject();
+        parameters.put("bucketId", bucket.getID());
+        JSONObject response = call(session.getAPIURL(), "b2_list_file_names", session.getAuthToken(), parameters);
+
+        //Add initial files
+        List<B2File> files = new ArrayList<B2File>();
+        addFiles(files, response.getJSONArray("files"));
+
+        //Add any files which require additional requests
+        while(response.has("nextFileName") && response.get("nextFileName").toString() == null){
+            System.out.println(response.get("nextFileName").toString());
+            parameters.put("startFileName", response.get("nextFileName"));
+            response = call(session.getAPIURL(), "b2_list_file_names", session.getAuthToken(), parameters);
+            addFiles(files, response.getJSONArray("files"));
+        }
+        return files;
+    }
+
+    private static void addFiles(List<B2File> currentList, JSONArray files){
+        for(int i = 0; i < files.length(); i++){
+            JSONObject file = files.getJSONObject(i);
+            currentList.add(new B2File(
+                            file.getString("fileName"),
+                            //TODO: Send correct file type
+                            "Unknown",
+                            file.getString("fileId"),
+                            file.getLong("size"),
+                            file.getLong("uploadTimestamp")
+                    )
+            );
+        }
     }
 
 }

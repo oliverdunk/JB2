@@ -6,6 +6,7 @@ package me.oliverdunk.jb2.models;
 public class B2File {
 
     private String name, contentType, ID;
+    private long size, uploadTimestamp;
 
     /**
      * Constructs a B2File.
@@ -13,11 +14,15 @@ public class B2File {
      * @param name The fileName which is stored on the B2 cloud
      * @param contentType Automatically picked content type in MIME format
      * @param ID Unique file identifier
+     * @param size Number of bytes in the file
+     * @param uploadTimestamp UTC based epoch time when the file was uploaded
      */
-    public B2File(String name, String contentType, String ID){
+    public B2File(String name, String contentType, String ID, long size, long uploadTimestamp){
         this.name = name;
         this.contentType = contentType;
         this.ID = ID;
+        this.size = size;
+        this.uploadTimestamp = uploadTimestamp;
     }
 
     /**
@@ -45,6 +50,24 @@ public class B2File {
      */
     public String getID(){
         return ID;
+    }
+
+    /**
+     * Gets the file size.
+     *
+     * @return Number of bytes in the file
+     */
+    public long getSize(){
+        return size;
+    }
+
+    /**
+     * Gets the time since upload, using milliseconds since the epoch (January 1st, 1970 UTC).
+     *
+     * @return Time when the file was uploaded
+     */
+    public long getUploadTimestamp(){
+        return uploadTimestamp;
     }
 
 }
