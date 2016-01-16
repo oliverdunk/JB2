@@ -311,6 +311,34 @@ public class B2API {
     }
 
     /**
+     * Deletes a B2File using the API, with the given ID
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param file The B2File instance which should be deleted
+     */
+    public static void deleteFile(B2Session session, B2File file){
+        JSONObject parameters = new JSONObject();
+        parameters.put("fileName", file.getName());
+        parameters.put("fileId", file.getID());
+        call(session.getAPIURL(), "b2_delete_file_version", session.getAuthToken(), parameters);
+    }
+
+    /**
+     * Fetches a file and instantiates a new B2File.
+     *
+     * @param session Session authenticated with the API, which will be used as Authorization
+     * @param fileID The ID of the file which should be fetched
+     * @return A B2File (timestamp currently not supported)
+     */
+    public static B2File getFile(B2Session session, String fileID){
+        JSONObject parameters = new JSONObject();
+        parameters.put("fileId", fileID);
+        JSONObject result = call(session.getAPIURL(), "b2_get_file_info", session.getAuthToken(), parameters);
+        //TODO: Get correct upload timestamp
+        return new B2File(result.getString("fileName"), result.getString("contentType"), result.getString("fileId"), result.getLong("contentLength"), 0);
+    }
+
+    /**
      * Lists all files using the API, sending one separate request per 1000 files
      *
      * @param session Session authenticated with the API, which will be used as Authorization
