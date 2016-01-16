@@ -1,4 +1,4 @@
-package me.oliverdunk.jb2.models;
+package com.oliverdunk.jb2.models;
 
 public class B2UploadRequest {
 

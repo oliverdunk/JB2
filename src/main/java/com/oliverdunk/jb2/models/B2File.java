@@ -1,4 +1,4 @@
-package me.oliverdunk.jb2.models;
+package com.oliverdunk.jb2.models;
 
 /**
  * Represents a file stored in the B2 cloud.

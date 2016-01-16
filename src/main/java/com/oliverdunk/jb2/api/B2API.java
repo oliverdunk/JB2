@@ -1,7 +1,7 @@
-package me.oliverdunk.jb2.api;
+package com.oliverdunk.jb2.api;
 
-import me.oliverdunk.jb2.exceptions.B2APIException;
-import me.oliverdunk.jb2.models.*;
+import com.oliverdunk.jb2.exceptions.B2APIException;
+import com.oliverdunk.jb2.models.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

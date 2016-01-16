@@ -1,4 +1,4 @@
-package me.oliverdunk.jb2.models;
+package com.oliverdunk.jb2.models;
 
 /**
  * Represents a Bucket present in the B2 API.
